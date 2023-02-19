@@ -1,63 +1,61 @@
 name: Build and Release
+
 on:
   push:
     branches:
       - main
+
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Setup Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: '1.17'
-    - name: Get version from tag
-      id: get_version
-      run: echo "::set-output name=version::$(echo ${GITHUB_REF#refs/tags/})"
-    - name: Build for Windows
-      run: env GOOS=windows GOARCH=amd64 go build -o CloudSonic-windows-amd64.exe main.go
-    - name: Build for macOS
-      run: go build -o CloudSonic-macos-amd64 main.go
-    - name: Build for Linux
-      run: go build -o CloudSonic-linux-amd64 main.go
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.get_version.outputs.version }}
-        release_name: Release ${{ steps.get_version.outputs.version }}
-        body: |
-            Release ${{ steps.version.outputs.version }}
-        draft: false
-        prerelease: false
-    - name: Upload Windows Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./CloudSonic-windows-amd64.exe
-        asset_name: CloudSonic-windows-amd64.exe
-        asset_content_type: application/octet-stream
-    - name: Upload macOS Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./CloudSonic-macos-amd64
-        asset_name: CloudSonic-macos-amd64
-        asset_content_type: application/octet-stream
-    - name: Upload Linux Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./CloudSonic-linux-amd64
-        asset_name: CloudSonic-linux-amd64
-        asset_content_type: application/octet-stream
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Get latest tag
+        id: tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set version
+        run: echo "VERSION=${{ steps.tag.outputs.tag_name }}" >> $GITHUB_ENV
+      
+      - name: Build for Windows
+        run: env GOOS=windows GOARCH=amd64 go build -o CloudSonic-windows-amd64.exe main.go
+      
+      - name: Build for Mac
+        run: env GOOS=darwin GOARCH=amd64 go build -o CloudSonic-darwin-amd64 main.go
+      
+      - name: Build for Linux
+        run: env GOOS=linux GOARCH=amd64 go build -o CloudSonic-linux-amd64 main.go
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          release_name: Release ${{ steps.tag.outputs.tag_name }}
+          body: |
+            Release ${{ steps.tag.outputs.tag_name }}
+          draft: false
+          prerelease: false
+      
+      - name: Upload Windows Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: CloudSonic-windows-amd64
+          path: CloudSonic-windows-amd64.exe
+      
+      - name: Upload Mac Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: CloudSonic-darwin-amd64
+          path: CloudSonic-darwin-amd64
+      
+      - name: Upload Linux Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: CloudSonic-linux-amd64
+          path: CloudSonic-linux-amd64
