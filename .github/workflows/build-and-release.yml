@@ -15,7 +15,7 @@ jobs:
         go-version: '1.17'
     - name: Get version from tag
       id: get_version
-      run: echo ::set-output name=version::$(git describe --tags)
+      run: echo "::set-output name=version::$(echo ${GITHUB_REF#refs/tags/})"
     - name: Build for Windows
       run: env GOOS=windows GOARCH=amd64 go build -o CloudSonic-windows-amd64.exe main.go
     - name: Build for macOS
@@ -30,7 +30,8 @@ jobs:
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
         release_name: Release ${{ steps.get_version.outputs.version }}
-        body: ""
+        body: |
+            Release ${{ steps.version.outputs.version }}
         draft: false
         prerelease: false
     - name: Upload Windows Release Asset
