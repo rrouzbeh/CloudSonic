@@ -16,8 +16,6 @@ jobs:
     - name: Get version from tag
       id: get_version
       run: echo ::set-output name=version::$(git describe --tags)
-    - name: Get current tag
-      run: echo ::set-env name=version::$(git describe --tags)
     - name: Build for Windows
       run: env GOOS=windows GOARCH=amd64 go build -o CloudSonic-windows-amd64.exe main.go
     - name: Build for macOS
@@ -30,8 +28,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.VERSION }}
-        release_name: Release ${{ env.VERSION }}
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: Release ${{ steps.get_version.outputs.version }}
         body: ""
         draft: false
         prerelease: false
